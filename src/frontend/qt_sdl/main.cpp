@@ -1186,6 +1186,30 @@ bool EmuThread::emuIsActive()
     return (RunningSomething == 1);
 }
 
+bool EmuThread::isColorBlack(u32 color)
+{
+    return color == 0 || color == 0x000080 || color == 0x010000 || (color & 0xFFFFE0) == 0x018000;
+}
+
+bool EmuThread::doesFramebufferPixelsMatchWithFunction(u32* framebuffer, bool (*pixelMatch)(u32))
+{
+    bool isNullScreen = true;
+    bool allColorsMatch = true;
+    for (int i = 0; i < 192*256; i++) {
+        u32 color = framebuffer[i] & 0xFFFFFF;
+        // when the result is 'totally black', it's a false positive, so we need to exclude that scenario
+        isNullScreen = isNullScreen && color == 0;
+        allColorsMatch = allColorsMatch && pixelMatch(color);
+        if (!allColorsMatch) {
+            break;
+        }
+    }
+    if (!isNullScreen) {
+        return allColorsMatch;
+    }
+    return false;
+}
+
 void EmuThread::drawScreenGL()
 {
     int w = windowInfo.surface_width;
@@ -1234,21 +1258,7 @@ void EmuThread::drawScreenGL()
     // checking if bottom screen is totally black
     u32* bottomBuffer = GPU::Framebuffer[frontbuf][1];
     if (bottomBuffer) {
-        // when the result is 'totally black', it's a false positive, so we need to exclude that scenario
-        bool newIsTotallyBlackBottomScreen = true;
-        bool newIsBlackBottomScreen = true;
-        for (int i = 0; i < 192*256; i++) {
-            u32 color = bottomBuffer[i] & 0xFFFFFF;
-            newIsTotallyBlackBottomScreen = newIsTotallyBlackBottomScreen && color == 0;
-            newIsBlackBottomScreen = newIsBlackBottomScreen && 
-                    (color == 0 || color == 0x000080 || color == 0x010000 || (bottomBuffer[i] & 0xFFFFE0) == 0x018000);
-            if (!newIsBlackBottomScreen) {
-                break;
-            }
-        }
-        if (!newIsTotallyBlackBottomScreen) {
-            isBlackBottomScreen = newIsBlackBottomScreen;
-        }
+        isBlackBottomScreen = doesFramebufferPixelsMatchWithFunction(bottomBuffer, &EmuThread::isColorBlack);
     }
 
     screenSettingsLock.lock();

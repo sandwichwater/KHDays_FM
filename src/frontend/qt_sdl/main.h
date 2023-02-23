@@ -87,6 +87,9 @@ signals:
     void swapScreensToggle();
 
 private:
+    static bool isColorBlack(u32 color);
+    bool doesFramebufferPixelsMatchWithFunction(u32* framebuffer, bool (*pixelMatch)(u32));
+
     void drawScreenGL();
     void initOpenGL();
     void deinitOpenGL();
