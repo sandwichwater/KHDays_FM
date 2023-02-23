@@ -1204,10 +1204,7 @@ bool EmuThread::doesFramebufferPixelsMatchWithFunction(u32* framebuffer, bool (*
             break;
         }
     }
-    if (!isNullScreen) {
-        return allColorsMatch;
-    }
-    return false;
+    return !isNullScreen && allColorsMatch;
 }
 
 void EmuThread::drawScreenGL()
